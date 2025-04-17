@@ -12,6 +12,8 @@ export interface SDKOptions {
   logLevel?: LogLevel;
   maxRetries?: number;
   enableOperationTracking?: boolean; // 是否启用操作链路记录
+  operationInactivityThreshold?: number; // 操作链路无操作超时时间（毫秒），默认60000
+  operationMaxDuration?: number; // 操作链路最大时长（毫秒），默认300000
 }
 
 // 声明全局Navigator接口扩展

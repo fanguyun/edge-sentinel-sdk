@@ -32,6 +32,7 @@ class EdgeSentinelSDK {
   private isInitialized: boolean = false;
   private isErrorState: boolean = false;
   private enableOperationTracking: boolean = false;
+  private options: SDKOptions;
 
   /**
    * 创建SDK实例
@@ -62,6 +63,7 @@ class EdgeSentinelSDK {
       this.sessionId = Utils.generateSessionId();
       this.startTime = Utils.now();
       this.enableOperationTracking = options.enableOperationTracking || false;
+      this.options = options;
 
       try {
         // 初始化各模块
@@ -98,7 +100,9 @@ class EdgeSentinelSDK {
       
       // 如果启用了操作链路记录，初始化操作链路记录模块
       if (this.enableOperationTracking) {
-        this.operationTracker.init();
+        this.operationTracker.init(true, this.options.operationInactivityThreshold, this.options.operationMaxDuration);
+      } else {
+        this.operationTracker.init(false);
       }
       
       this.isInitialized = true;

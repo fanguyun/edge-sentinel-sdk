@@ -8,7 +8,7 @@
 - 错误监控：捕获并上报 JavaScript 错误、Promise 异常和资源加载错误
 - 性能监控：监控 API 请求、页面停留时间和访问深度
 - 自定义事件：支持手动上报自定义事件和数据
-- 操作链路记录：记录用户完整操作链路，支持操作步骤跟踪
+- 操作链路记录：自动记录用户完整操作链路，支持操作步骤跟踪，无需手动调用API
 - 模块化设计：各功能模块独立，便于扩展和维护
 
 ## 安装
@@ -40,7 +40,10 @@ sentinel.trackEvent('button_click', {
   page: 'checkout'
 });
 
-// 记录用户操作链路示例
+// 操作链路记录已支持自动上报，无需手动调用API
+// SDK会自动记录用户的交互行为，并在适当时机上报完整操作链路
+
+// 如果需要手动控制操作链路，仍可使用以下API：
 // 1. 开始一个操作
 const operationId = sentinel.startOperation('checkout_process', {
   cartId: '12345',
@@ -164,6 +167,8 @@ new EdgeSentinelSDK(options);
 
 SDK 上报的数据结构如下所示：
 
+### 基础事件上报数据
+
 ```json
 {
   "type": "event", // 上报类型，如 event（自定义事件）、error（错误）、performance（性能）、operation（操作链路）等
@@ -186,6 +191,68 @@ SDK 上报的数据结构如下所示：
 }
 ```
 
+### 操作链路上报数据
+
+```json
+{
+  "type": "operation",
+  "name": "checkout_process",
+  "operationId": "op_1718000000000_abcdef",
+  "status": "completed",
+  "startTime": 1718000000000,
+  "endTime": 1718000120000,
+  "duration": 120000,
+  "metadata": {
+    "cartId": "12345",
+    "totalAmount": 99.99
+  },
+  "steps": [
+    {
+      "stepId": "step_1718000020000_abcdef",
+      "name": "view_cart",
+      "timestamp": 1718000020000,
+      "data": {
+        "itemCount": 3,
+        "pageUrl": "/cart"
+      }
+    },
+    {
+      "stepId": "step_1718000060000_abcdef",
+      "name": "input_address",
+      "timestamp": 1718000060000,
+      "data": {
+        "addressType": "shipping",
+        "formCompleted": true
+      }
+    },
+    {
+      "stepId": "step_1718000090000_abcdef",
+      "name": "select_payment",
+      "timestamp": 1718000090000,
+      "data": {
+        "method": "credit_card",
+        "saveForLater": true
+      }
+    }
+  ],
+  "result": {
+    "orderId": "ORD-123456",
+    "status": "success"
+  },
+  "isSuccess": true,
+  "appId": "your-app-id",
+  "userKey": "user-unique-id",
+  "sessionId": "abcdef1234567890",
+  "baseInfo": {
+    "userAgent": "Mozilla/5.0 ...",
+    "platform": "MacIntel",
+    "language": "zh-CN",
+    "screen": "1440x900",
+    "referrer": "https://example.com/"
+  }
+}
+```
+
 字段说明：
 - `type`：上报数据类型，区分不同监控内容（如 event、error、performance、operation）。
 - `name`：事件、错误或操作的名称。
@@ -195,6 +262,17 @@ SDK 上报的数据结构如下所示：
 - `userKey`：用户唯一标识。
 - `sessionId`：会话唯一标识，自动生成，用于区分用户会话。
 - `baseInfo`：设备、浏览器等基础环境信息。
+
+操作链路特有字段：
+- `operationId`：操作唯一标识。
+- `status`：操作状态，可能为 'started', 'in_progress', 'completed', 'failed', 'cancelled', 'interrupted'。
+- `startTime`：操作开始时间戳。
+- `endTime`：操作结束时间戳。
+- `duration`：操作持续时间（毫秒）。
+- `metadata`：操作相关元数据。
+- `steps`：操作步骤列表，每个步骤包含stepId、name、timestamp和data。
+- `result`：操作结果数据。
+- `isSuccess`：操作是否成功。
 
 ## 许可证
 
