@@ -1,0 +1,34 @@
+# 开发文件
+.git
+.github
+.gitignore
+.npmrc
+.eslintrc
+.prettierrc
+.babelrc
+.editorconfig
+
+# 源代码目录
+src
+
+# 开发和测试文件
+node_modules
+coverage
+test
+tests
+examples
+demo
+
+# 构建和配置文件
+rollup.config.js
+webpack.config.js
+tsconfig.json
+.travis.yml
+.gitlab-ci.yml
+
+# 日志和临时文件
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
