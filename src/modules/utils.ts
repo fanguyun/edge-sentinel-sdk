@@ -5,6 +5,7 @@ import Logger from './logger';
 
 export default class Utils {
   private static logger = Logger.getInstance();
+  private static networkStatus: boolean = navigator.onLine;
 
   /**
    * 生成会话ID
@@ -78,19 +79,84 @@ export default class Utils {
   static safeGet(obj: any, path: string, defaultValue: any = undefined): any {
     try {
       if (!obj || !path) return defaultValue;
-      
+
       const keys = path.split('.');
       let result = obj;
-      
+
       for (const key of keys) {
         if (result === undefined || result === null) return defaultValue;
         result = result[key];
       }
-      
+
       return result === undefined ? defaultValue : result;
     } catch (err) {
       this.logger.error(`获取属性 ${path} 失败`, err);
       return defaultValue;
+    }
+  }
+
+  /**
+   * 检查网络是否在线
+   * @returns {boolean} 是否在线
+   */
+  static isOnline(): boolean {
+    try {
+      return navigator.onLine;
+    } catch (err) {
+      this.logger.error('检查网络状态失败', err);
+      return true; // 默认假设在线
+    }
+  }
+
+  /**
+   * 设置网络状态监听器
+   * @param {Function} onlineCallback 网络恢复回调
+   * @param {Function} offlineCallback 网络断开回调
+   */
+  static setupNetworkListener(onlineCallback: () => void, offlineCallback?: () => void): void {
+    try {
+      // 初始化网络状态
+      this.networkStatus = navigator.onLine;
+
+      // 监听网络状态变化
+      window.addEventListener('online', () => {
+        const previousStatus = this.networkStatus;
+        this.networkStatus = true;
+
+        // 只有状态变化时才触发回调
+        if (!previousStatus && onlineCallback) {
+          onlineCallback();
+        }
+      });
+
+      window.addEventListener('offline', () => {
+        const previousStatus = this.networkStatus;
+        this.networkStatus = false;
+
+        // 只有状态变化时才触发回调
+        if (previousStatus && offlineCallback) {
+          offlineCallback();
+        }
+      });
+    } catch (err) {
+      this.logger.error('设置网络状态监听器失败', err);
+    }
+  }
+
+  /**
+   * 生成唯一ID
+   * @returns {string} 唯一ID
+   */
+  static generateUniqueId(): string {
+    try {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    } catch (err) {
+      this.logger.error('生成唯一ID失败', err);
+      return `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
   }
 }

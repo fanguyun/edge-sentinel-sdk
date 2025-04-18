@@ -21,25 +21,25 @@ export default class ErrorMonitor {
   init(): void {
     try {
       if (this.initialized) return;
-      
+
       try {
         this.trackJSErrors();
       } catch (err) {
         this.logger.error('JS错误监控初始化失败', err);
       }
-      
+
       try {
         this.trackPromiseErrors();
       } catch (err) {
         this.logger.error('Promise错误监控初始化失败', err);
       }
-      
+
       try {
         this.trackResourceErrors();
       } catch (err) {
         this.logger.error('资源错误监控初始化失败', err);
       }
-      
+
       this.initialized = true;
       this.logger.info('错误监控模块初始化成功');
     } catch (err) {
@@ -61,7 +61,7 @@ export default class ErrorMonitor {
             }
             return;
           }
-          
+
           const errorObj = e.error as ErrorWithStack;
           this.reporter({
             type: 'js_error',
@@ -70,14 +70,14 @@ export default class ErrorMonitor {
             filename: e.filename,
             lineno: e.lineno,
             colno: e.colno,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
         } catch (err) {
           this.logger.error('JS错误上报失败', err);
           // 即使上报失败也不抛出异常，保证不影响业务应用
         }
       },
-      true
+      true,
     );
   }
 
@@ -89,16 +89,19 @@ export default class ErrorMonitor {
         if (reasonStr.includes('edge-sentinel-sdk')) {
           // 使用全局错误处理函数处理SDK内部错误
           if (window.__EDGE_SENTINEL_ERROR_HANDLER__) {
-            window.__EDGE_SENTINEL_ERROR_HANDLER__(e.reason instanceof Error ? e.reason : new Error(reasonStr), 'Promise错误监控');
+            window.__EDGE_SENTINEL_ERROR_HANDLER__(
+              e.reason instanceof Error ? e.reason : new Error(reasonStr),
+              'Promise错误监控',
+            );
           }
           return;
         }
-        
+
         this.reporter({
           type: 'promise_error',
           message: e.reason?.message || String(e.reason) || '未知Promise错误',
           stack: e.reason?.stack,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       } catch (err) {
         this.logger.error('Promise错误上报失败', err);
@@ -117,25 +120,29 @@ export default class ErrorMonitor {
             // 获取资源URL
             let resourceUrl = '';
             try {
-              resourceUrl = (target as HTMLImageElement | HTMLScriptElement).src || (target as HTMLLinkElement).href || '未知资源';
+              resourceUrl =
+                (target as HTMLImageElement | HTMLScriptElement).src || (target as HTMLLinkElement).href || '未知资源';
             } catch (urlErr) {
               resourceUrl = '无法获取资源URL';
               this.logger.warn('无法获取资源URL', urlErr);
             }
-            
+
             // 过滤SDK自身的资源错误
             if (resourceUrl.includes('edge-sentinel-sdk')) {
               // 使用全局错误处理函数处理SDK内部错误
               if (window.__EDGE_SENTINEL_ERROR_HANDLER__) {
-                window.__EDGE_SENTINEL_ERROR_HANDLER__(new Error(`Failed to load SDK resource: ${resourceUrl}`), '资源错误监控');
+                window.__EDGE_SENTINEL_ERROR_HANDLER__(
+                  new Error(`Failed to load SDK resource: ${resourceUrl}`),
+                  '资源错误监控',
+                );
               }
               return;
             }
-            
+
             this.reporter({
               type: 'resource_error',
               message: `Failed to load ${target.tagName.toLowerCase()}: ${resourceUrl}`,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
           }
         } catch (err) {
@@ -143,7 +150,21 @@ export default class ErrorMonitor {
           // 即使上报失败也不抛出异常，保证不影响业务应用
         }
       },
-      true
+      true,
     );
+  }
+
+  destroy(): void {
+    try {
+      // 移除错误监听器
+      window.removeEventListener('error', this.trackJSErrors.bind(this), true);
+      window.removeEventListener('unhandledrejection', this.trackPromiseErrors.bind(this));
+      window.removeEventListener('error', this.trackResourceErrors.bind(this), true);
+
+      this.initialized = false;
+      this.logger.info('错误监控模块已销毁');
+    } catch (err) {
+      this.logger.error('错误监控模块销毁失败', err);
+    }
   }
 }

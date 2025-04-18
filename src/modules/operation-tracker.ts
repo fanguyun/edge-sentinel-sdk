@@ -12,7 +12,7 @@ export default class OperationTracker {
   private initialized: boolean = false;
   private logger: Logger;
   private activeOperations: Map<string, OperationEvent> = new Map();
-  
+
   // 自动操作链路相关属性
   private autoTrackingEnabled: boolean = false;
   private currentAutoOperation: string | null = null;
@@ -28,7 +28,7 @@ export default class OperationTracker {
   constructor(reporter: (data: ReportData) => void) {
     this.reporter = reporter;
     this.logger = Logger.getInstance();
-    
+
     // 绑定事件处理函数到实例
     this.boundHandleUserInteraction = this.handleUserInteraction.bind(this);
     this.boundHandleVisibilityChange = this.handleVisibilityChange.bind(this);
@@ -44,17 +44,17 @@ export default class OperationTracker {
   init(enableAutoTracking: boolean = false, inactivityThreshold?: number, maxOperationDuration?: number): void {
     try {
       if (this.initialized) return;
-      
+
       // 页面关闭前处理未完成的操作
       window.addEventListener('beforeunload', () => {
         this.handlePageUnload();
       });
-      
+
       // 如果启用自动操作链路记录
       if (enableAutoTracking) {
         this.enableAutoTracking(inactivityThreshold, maxOperationDuration);
       }
-      
+
       this.initialized = true;
       this.logger.info('操作链路记录模块初始化成功');
     } catch (err) {
@@ -62,7 +62,7 @@ export default class OperationTracker {
       // 即使初始化失败也不抛出异常，保证不影响业务应用
     }
   }
-  
+
   /**
    * 启用自动操作链路记录
    * @param {number} inactivityThreshold 无操作超时时间（毫秒）
@@ -71,47 +71,47 @@ export default class OperationTracker {
   enableAutoTracking(inactivityThreshold?: number, maxOperationDuration?: number): void {
     try {
       if (this.autoTrackingEnabled) return;
-      
+
       // 设置配置参数
       if (inactivityThreshold) this.inactivityThreshold = inactivityThreshold;
       if (maxOperationDuration) this.maxOperationDuration = maxOperationDuration;
-      
+
       // 监听用户交互事件
       window.addEventListener('click', this.boundHandleUserInteraction, { passive: true });
       window.addEventListener('keydown', this.boundHandleUserInteraction, { passive: true });
       window.addEventListener('scroll', this.boundHandleUserInteraction, { passive: true });
       window.addEventListener('mousemove', this.boundHandleUserInteraction, { passive: true });
       window.addEventListener('touchstart', this.boundHandleUserInteraction, { passive: true });
-      
+
       // 监听页面可见性变化
       document.addEventListener('visibilitychange', this.boundHandleVisibilityChange);
-      
+
       // 监听路由变化（针对SPA应用）
       window.addEventListener('popstate', this.boundHandleRouteChange);
       window.addEventListener('hashchange', this.boundHandleRouteChange);
-      
+
       // 启动定期检查
       this.autoOperationCheckInterval = window.setInterval(() => {
         this.checkAutoOperationStatus();
       }, 10000); // 每10秒检查一次
-      
+
       // 初始化第一个自动操作
       this.startAutoOperation('页面浏览');
-      
+
       this.autoTrackingEnabled = true;
       this.logger.info('自动操作链路记录已启用');
     } catch (err) {
       this.logger.error('启用自动操作链路记录失败', err);
     }
   }
-  
+
   /**
    * 禁用自动操作链路记录
    */
   disableAutoTracking(): void {
     try {
       if (!this.autoTrackingEnabled) return;
-      
+
       // 移除事件监听
       window.removeEventListener('click', this.boundHandleUserInteraction);
       window.removeEventListener('keydown', this.boundHandleUserInteraction);
@@ -121,19 +121,19 @@ export default class OperationTracker {
       document.removeEventListener('visibilitychange', this.boundHandleVisibilityChange);
       window.removeEventListener('popstate', this.boundHandleRouteChange);
       window.removeEventListener('hashchange', this.boundHandleRouteChange);
-      
+
       // 清除定时器
       if (this.autoOperationCheckInterval !== null) {
         window.clearInterval(this.autoOperationCheckInterval);
         this.autoOperationCheckInterval = null;
       }
-      
+
       // 结束当前自动操作
       if (this.currentAutoOperation) {
         this.completeOperation(this.currentAutoOperation, { reason: '自动操作链路记录已禁用' });
         this.currentAutoOperation = null;
       }
-      
+
       this.autoTrackingEnabled = false;
       this.logger.info('自动操作链路记录已禁用');
     } catch (err) {
@@ -156,7 +156,7 @@ export default class OperationTracker {
 
       const operationId = Utils.generateSessionId();
       const startTime = Utils.now();
-      
+
       const operation: OperationEvent = {
         type: 'operation',
         operationId,
@@ -165,14 +165,14 @@ export default class OperationTracker {
         startTime,
         metadata,
         steps: [],
-        timestamp: startTime
+        timestamp: startTime,
       };
-      
+
       this.activeOperations.set(operationId, operation);
-      
+
       // 上报操作开始事件
       this.reporter(operation);
-      
+
       return operationId;
     } catch (err) {
       this.logger.error(`开始操作 [${operationName}] 失败`, err);
@@ -203,23 +203,23 @@ export default class OperationTracker {
       const step = {
         stepName,
         stepData,
-        timestamp: Utils.now()
+        timestamp: Utils.now(),
       };
 
       operation.steps.push(step);
       operation.status = OperationStatus.IN_PROGRESS;
       operation.timestamp = step.timestamp;
-      
+
       // 更新操作状态
       this.activeOperations.set(operationId, operation);
-      
+
       // 上报操作进度更新
       this.reporter({
         ...operation,
         type: 'operation',
-        status: OperationStatus.IN_PROGRESS
+        status: OperationStatus.IN_PROGRESS,
       });
-      
+
       return true;
     } catch (err) {
       this.logger.error(`添加操作步骤 [${stepName}] 失败`, err);
@@ -249,20 +249,20 @@ export default class OperationTracker {
 
       const endTime = Utils.now();
       const duration = endTime - operation.startTime;
-      
+
       // 更新操作状态
       operation.status = isSuccess ? OperationStatus.COMPLETED : OperationStatus.FAILED;
       operation.endTime = endTime;
       operation.duration = duration;
       operation.resultData = resultData;
       operation.timestamp = endTime;
-      
+
       // 上报完整操作链路
       this.reporter(operation);
-      
+
       // 从活动操作中移除
       this.activeOperations.delete(operationId);
-      
+
       return true;
     } catch (err) {
       this.logger.error(`完成操作 [${operationId}] 失败`, err);
@@ -291,20 +291,20 @@ export default class OperationTracker {
 
       const endTime = Utils.now();
       const duration = endTime - operation.startTime;
-      
+
       // 更新操作状态
       operation.status = OperationStatus.CANCELLED;
       operation.endTime = endTime;
       operation.duration = duration;
       operation.cancelReason = reason;
       operation.timestamp = endTime;
-      
+
       // 上报取消操作事件
       this.reporter(operation);
-      
+
       // 从活动操作中移除
       this.activeOperations.delete(operationId);
-      
+
       return true;
     } catch (err) {
       this.logger.error(`取消操作 [${operationId}] 失败`, err);
@@ -320,37 +320,39 @@ export default class OperationTracker {
   private handleUserInteraction(event: Event): void {
     try {
       if (!this.autoTrackingEnabled) return;
-      
+
       const now = Utils.now();
       this.lastUserInteraction = now;
-      
+
       // 如果当前没有活动的自动操作，创建一个新的
       if (!this.currentAutoOperation) {
         this.startAutoOperation('用户交互');
         return;
       }
-      
+
       // 添加交互步骤
       if (this.currentAutoOperation) {
         const eventType = event.type;
         const target = event.target as HTMLElement;
-        const targetInfo = target ? {
-          tagName: target.tagName?.toLowerCase() || 'unknown',
-          id: target.id || undefined,
-          className: target.className || undefined
-        } : 'unknown';
-        
+        const targetInfo = target
+          ? {
+              tagName: target.tagName?.toLowerCase() || 'unknown',
+              id: target.id || undefined,
+              className: target.className || undefined,
+            }
+          : 'unknown';
+
         this.addOperationStep(this.currentAutoOperation, `用户${eventType}`, {
           eventType,
           target: targetInfo,
-          timestamp: now
+          timestamp: now,
         });
       }
     } catch (err) {
       this.logger.error('处理用户交互事件失败', err);
     }
   }
-  
+
   /**
    * 处理页面可见性变化
    * @private
@@ -358,17 +360,17 @@ export default class OperationTracker {
   private handleVisibilityChange(): void {
     try {
       if (!this.autoTrackingEnabled) return;
-      
+
       const isVisible = document.visibilityState === 'visible';
       const now = Utils.now();
-      
+
       if (isVisible) {
         // 页面变为可见，如果没有活动的自动操作，创建一个新的
         if (!this.currentAutoOperation) {
           this.startAutoOperation('页面恢复可见');
         } else {
           this.addOperationStep(this.currentAutoOperation, '页面恢复可见', {
-            timestamp: now
+            timestamp: now,
           });
         }
       } else {
@@ -376,7 +378,7 @@ export default class OperationTracker {
         if (this.currentAutoOperation) {
           this.completeOperation(this.currentAutoOperation, {
             reason: '页面不可见',
-            timestamp: now
+            timestamp: now,
           });
           this.currentAutoOperation = null;
         }
@@ -385,7 +387,7 @@ export default class OperationTracker {
       this.logger.error('处理页面可见性变化失败', err);
     }
   }
-  
+
   /**
    * 处理路由变化（SPA应用）
    * @private
@@ -393,29 +395,29 @@ export default class OperationTracker {
   private handleRouteChange(): void {
     try {
       if (!this.autoTrackingEnabled) return;
-      
+
       const now = Utils.now();
       this.lastPageChange = now;
-      
+
       // 结束当前操作并开始新操作
       if (this.currentAutoOperation) {
         this.completeOperation(this.currentAutoOperation, {
           reason: '页面路由变化',
           url: window.location.href,
-          timestamp: now
+          timestamp: now,
         });
       }
-      
+
       // 开始新的操作
       this.startAutoOperation('页面路由变化', {
         url: window.location.href,
-        title: document.title
+        title: document.title,
       });
     } catch (err) {
       this.logger.error('处理路由变化失败', err);
     }
   }
-  
+
   /**
    * 检查自动操作状态
    * @private
@@ -423,35 +425,35 @@ export default class OperationTracker {
   private checkAutoOperationStatus(): void {
     try {
       if (!this.autoTrackingEnabled || !this.currentAutoOperation) return;
-      
+
       const now = Utils.now();
       const operation = this.activeOperations.get(this.currentAutoOperation);
-      
+
       if (!operation) {
         this.currentAutoOperation = null;
         return;
       }
-      
+
       // 检查是否超过最大操作时长
       const operationDuration = now - operation.startTime;
       if (operationDuration > this.maxOperationDuration) {
         this.completeOperation(this.currentAutoOperation, {
           reason: '操作超时',
           duration: operationDuration,
-          timestamp: now
+          timestamp: now,
         });
         this.currentAutoOperation = null;
         this.startAutoOperation('新操作会话');
         return;
       }
-      
+
       // 检查是否超过无操作阈值
       const timeSinceLastInteraction = now - this.lastUserInteraction;
       if (timeSinceLastInteraction > this.inactivityThreshold) {
         this.completeOperation(this.currentAutoOperation, {
           reason: '用户无操作',
           inactiveTime: timeSinceLastInteraction,
-          timestamp: now
+          timestamp: now,
         });
         this.currentAutoOperation = null;
       }
@@ -459,7 +461,7 @@ export default class OperationTracker {
       this.logger.error('检查自动操作状态失败', err);
     }
   }
-  
+
   /**
    * 开始自动操作
    * @param {string} operationName 操作名称
@@ -470,16 +472,16 @@ export default class OperationTracker {
     try {
       const now = Utils.now();
       this.lastUserInteraction = now;
-      
+
       // 添加自动操作的标识
       const enhancedMetadata = {
         ...metadata,
         isAutoTracked: true,
         url: window.location.href,
         title: document.title,
-        timestamp: now
+        timestamp: now,
       };
-      
+
       // 开始新操作
       const operationId = this.startOperation(operationName, enhancedMetadata);
       if (operationId) {
@@ -489,7 +491,7 @@ export default class OperationTracker {
       this.logger.error(`开始自动操作 [${operationName}] 失败`, err);
     }
   }
-  
+
   /**
    * 处理页面卸载时的未完成操作
    * @private
@@ -501,20 +503,20 @@ export default class OperationTracker {
         try {
           const endTime = Utils.now();
           const duration = endTime - operation.startTime;
-          
+
           // 更新操作状态
           operation.status = OperationStatus.INTERRUPTED;
           operation.endTime = endTime;
           operation.duration = duration;
           operation.timestamp = endTime;
-          
+
           // 上报中断操作事件
           this.reporter(operation);
         } catch (err) {
           this.logger.error(`处理未完成操作 [${operationId}] 失败`, err);
         }
       });
-      
+
       // 清空活动操作
       this.activeOperations.clear();
     } catch (err) {
@@ -538,7 +540,7 @@ export default class OperationTracker {
   getOperationStatus(operationId: string): OperationStatus | null {
     try {
       if (!operationId) return null;
-      
+
       const operation = this.activeOperations.get(operationId);
       return operation ? operation.status : null;
     } catch (err) {
@@ -546,7 +548,7 @@ export default class OperationTracker {
       return null;
     }
   }
-  
+
   /**
    * 获取当前自动操作ID
    * @returns {string | null} 当前自动操作ID
@@ -554,12 +556,52 @@ export default class OperationTracker {
   getCurrentAutoOperation(): string | null {
     return this.currentAutoOperation;
   }
-  
+
   /**
    * 检查自动操作链路记录是否已启用
    * @returns {boolean} 是否已启用
    */
   isAutoTrackingEnabled(): boolean {
     return this.autoTrackingEnabled;
+  }
+
+  /**
+   * 销毁操作链路记录模块
+   */
+  destroy(): void {
+    try {
+      // 移除用户交互事件监听器
+      window.removeEventListener('click', this.boundHandleUserInteraction);
+      window.removeEventListener('keydown', this.boundHandleUserInteraction);
+      window.removeEventListener('scroll', this.boundHandleUserInteraction);
+      window.removeEventListener('mousemove', this.boundHandleUserInteraction);
+      window.removeEventListener('touchstart', this.boundHandleUserInteraction);
+
+      // 移除页面可见性变化监听器
+      document.removeEventListener('visibilitychange', this.boundHandleVisibilityChange);
+
+      // 移除路由变化监听器
+      window.removeEventListener('popstate', this.boundHandleRouteChange);
+      window.removeEventListener('hashchange', this.boundHandleRouteChange);
+
+      // 移除页面卸载监听器
+      window.removeEventListener('beforeunload', this.handlePageUnload.bind(this));
+
+      // 清理自动操作检查定时器
+      if (this.autoOperationCheckInterval !== null) {
+        window.clearInterval(this.autoOperationCheckInterval);
+        this.autoOperationCheckInterval = null;
+      }
+
+      // 清理当前操作状态
+      this.activeOperations.clear();
+      this.currentAutoOperation = null;
+      this.initialized = false;
+      this.autoTrackingEnabled = false;
+
+      this.logger.info('操作链路记录模块已销毁');
+    } catch (err) {
+      this.logger.error('操作链路记录模块销毁失败', err);
+    }
   }
 }

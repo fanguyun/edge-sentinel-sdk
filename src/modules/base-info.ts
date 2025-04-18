@@ -23,11 +23,18 @@ export default class BaseInfoCollector {
         hardwareConcurrency: null,
         screen: {
           width: 0,
-          height: 0
+          height: 0,
         },
         ip: null,
         region: null,
-        city: null
+        city: null,
+        url: window?.location?.href || '',
+        networkInfo: {
+          effectiveType: null,
+          downlink: null,
+          rtt: null,
+          saveData: null,
+        },
       };
 
       // 尝试收集真实信息，如果出错则使用默认值
@@ -40,11 +47,18 @@ export default class BaseInfoCollector {
           hardwareConcurrency: navigator?.hardwareConcurrency || null,
           screen: {
             width: window?.screen?.width || defaultBaseInfo.screen.width,
-            height: window?.screen?.height || defaultBaseInfo.screen.height
+            height: window?.screen?.height || defaultBaseInfo.screen.height,
           },
           ip: null,
           region: null,
-          city: null // 可通过后端或第三方API补充
+          city: null, // 可通过后端或第三方API补充
+          url: window?.location?.href || defaultBaseInfo.url,
+          networkInfo: {
+            effectiveType: (navigator as any)?.connection?.effectiveType || defaultBaseInfo.networkInfo.effectiveType,
+            downlink: (navigator as any)?.connection?.downlink || defaultBaseInfo.networkInfo.downlink,
+            rtt: (navigator as any)?.connection?.rtt || defaultBaseInfo.networkInfo.rtt,
+            saveData: (navigator as any)?.connection?.saveData || defaultBaseInfo.networkInfo.saveData,
+          },
         };
       } catch (err) {
         this.logger.error('收集基础信息失败，使用默认值', err);
@@ -63,11 +77,18 @@ export default class BaseInfoCollector {
         hardwareConcurrency: null,
         screen: {
           width: 0,
-          height: 0
+          height: 0,
         },
         ip: null,
         region: null,
-        city: null
+        city: null,
+        url: '',
+        networkInfo: {
+          effectiveType: null,
+          downlink: null,
+          rtt: null,
+          saveData: null,
+        },
       };
     }
   }
